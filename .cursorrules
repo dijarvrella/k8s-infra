@@ -1,0 +1,210 @@
+# k8s-infra Cursor Rules
+
+## Project Overview
+This is a Kubernetes infrastructure repository using GitOps with ArgoCD. It follows the App of Apps pattern and manages infrastructure operators and application deployments.
+
+## Repository Structure
+- `operators/` - Infrastructure operators (ingress-nginx, cert-manager, prometheus-operator, loki, promtail, etc.)
+- `apps/` - Application deployments (morichal-ai-backend, morichal-ai-frontend)
+- `k8s-infra-operators-app-of-apps.yml` - App of Apps for operators
+- `k8s-infra-apps-app-of-apps.yml` - App of Apps for applications
+- `k8s-infra-appproject.yml` - ArgoCD AppProject for k8s-infra
+- `morichal-ai-dev-appproject.yml` - ArgoCD AppProject for morichal-ai-dev
+
+## ArgoCD Application Patterns
+
+### Standard Application Structure
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: <name>
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: <name>
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra  # or morichal-ai-dev for apps
+  source:
+    repoURL: <helm-repo-url>
+    targetRevision: <version>
+    chart: <chart-name>
+    helm:
+      releaseName: <release-name>
+      values: |
+        # Helm values here
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: <namespace>
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+```
+
+### Common ignoreDifferences Patterns
+For resources that have sync issues (webhooks, CRDs, Ingress):
+```yaml
+ignoreDifferences:
+  - group: admissionregistration.k8s.io
+    kind: ValidatingWebhookConfiguration
+    name: <webhook-name>
+    jsonPointers:
+      - /metadata/resourceVersion
+      - /metadata/generation
+      - /metadata/uid
+      - /metadata/creationTimestamp
+  - group: networking.k8s.io
+    kind: Ingress
+    name: <ingress-name>
+    jsonPointers:
+      - /metadata/annotations
+      - /metadata/resourceVersion
+      - /metadata/generation
+  - group: apiextensions.k8s.io
+    kind: CustomResourceDefinition
+    jsonPointers:
+      - /metadata/resourceVersion
+      - /metadata/generation
+      - /metadata/uid
+      - /metadata/creationTimestamp
+  - group: monitoring.coreos.com
+    kind: Prometheus
+    jsonPointers:
+      - /spec/enableOTLPReceiver  # For schema mismatches
+```
+
+## Helm Chart Guidelines
+
+### Chart Version Management
+- Always verify chart versions exist on ArtifactHub before using
+- Use stable, tested versions (not always the latest)
+- Document version choices in commit messages
+
+### Common Chart Repositories
+- `https://kubernetes.github.io/ingress-nginx` - Ingress NGINX
+- `https://charts.jetstack.io` - cert-manager
+- `https://prometheus-community.github.io/helm-charts` - Prometheus Operator
+- `https://grafana.github.io/helm-charts` - Loki, Promtail, Grafana
+
+### Loki Configuration Notes
+- Use `deploymentMode: SingleBinary<->SimpleScalable` for filesystem storage
+- Do NOT use `shared_store` in compactor config (not a valid field)
+- For filesystem storage, prefer SingleBinary mode
+- SimpleScalable mode REQUIRES object storage (MinIO, S3, etc.)
+
+## Git Workflow
+
+### Commit Strategy
+- ALWAYS amend commits: `git commit --amend --no-edit`
+- ALWAYS force push: `git push -f origin main`
+- Prefer single commit history (squash when needed)
+- Commit message format: Brief description of changes
+
+### File Management
+- Never commit temporary files (*.sh, resources.yaml, secrets.yaml)
+- Keep .gitignore updated with IDE and temporary files
+- Operators go in `operators/`
+- Applications go in `apps/`
+
+## Infrastructure Patterns
+
+### Monitoring Stack
+- **Prometheus Operator**: kube-prometheus-stack chart
+  - Namespace: `monitoring`
+  - Includes Prometheus, Grafana, Alertmanager
+  - Use version 61.7.0 (stable, avoids schema issues)
+- **Loki**: For log aggregation
+  - Namespace: `monitoring`
+  - Use SingleBinary mode with filesystem storage
+  - Version: 6.46.0
+- **Promtail**: For log collection
+  - Namespace: `monitoring`
+  - Version: 6.17.1
+  - Configured to send logs to Loki
+
+### Ingress Configuration
+- Use `ingressClassName: nginx`
+- Always include cert-manager annotation: `cert-manager.io/cluster-issuer: letsencrypt-prod`
+- TLS secrets follow pattern: `<service-name>-tls`
+
+### Storage Preferences
+- Prefer filesystem storage when possible (Loki SingleBinary)
+- Use PersistentVolumeClaims for stateful workloads
+- Avoid object storage unless required by chart constraints
+
+## Troubleshooting Common Issues
+
+### ArgoCD Sync Issues
+1. **Webhook certificate errors**: Add ignoreDifferences for ValidatingWebhookConfiguration
+2. **CRD sync failures**: Add ignoreDifferences for CustomResourceDefinition
+3. **Ingress webhook errors**: Add ignoreDifferences for Ingress resources
+4. **Schema mismatches**: Add ignoreDifferences for specific fields causing issues
+
+### Helm Chart Issues
+1. **Chart version not found**: Verify on ArtifactHub, use correct version
+2. **Validation errors**: Check chart documentation for required fields
+3. **Config parsing errors**: Verify YAML syntax and field names match chart schema
+
+### Pod Scheduling Issues
+- Check resource requests/limits
+- Verify node capacity
+- Check for taints and tolerations
+
+## Code Style
+
+### YAML Formatting
+- Use 2 spaces for indentation
+- Always include finalizers for ArgoCD Applications
+- Use descriptive names following kebab-case
+- Include labels: `app.kubernetes.io/name: <name>`
+
+### Comments
+- Add comments for non-obvious configurations
+- Document version choices
+- Explain ignoreDifferences reasons
+
+## Best Practices
+
+1. **Always test chart versions locally** before committing
+2. **Use ignoreDifferences sparingly** - only when necessary for sync issues
+3. **Keep configurations idempotent** - same apply should produce same result
+4. **Document chart version choices** in commit messages
+5. **Verify ArgoCD sync status** after changes
+6. **Check pod logs** when troubleshooting
+7. **Use ServerSideApply=true** for complex resources
+8. **Always include CreateNamespace=true** in syncOptions
+
+## Domain and Infrastructure
+- Domain: `dev.morichalcorp.com`
+- Infrastructure: DigitalOcean Kubernetes
+- Load balancers: DigitalOcean Load Balancers
+- Certificates: Let's Encrypt via cert-manager
+
+## Namespace Conventions
+- `argocd` - ArgoCD components
+- `ingress-nginx` - Ingress controller
+- `cert-manager` - Certificate management
+- `monitoring` - Monitoring stack (Prometheus, Grafana, Loki, Promtail)
+- `morichal-ai-backend` - Backend application
+- `morichal-ai-frontend` - Frontend application
+
+## When Adding New Operators
+1. Create Application manifest in `operators/<operator-name>-app.yml`
+2. Use appropriate project (`k8s-infra` for operators)
+3. Configure syncPolicy with automated sync
+4. Add ignoreDifferences if needed for webhooks/CRDs
+5. Test locally before committing
+6. Commit with amend and force push
+
+## When Adding New Applications
+1. Create Application manifest in `apps/<app-name>-app.yml`
+2. Use project `morichal-ai-dev` for applications
+3. Configure appropriate namespace
+4. Set targetRevision to specific branch (e.g., `dev`)
+5. Set path to `k8s` directory in source repo
+

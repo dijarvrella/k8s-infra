@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8s-infra-operators
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: k8s-infra-operators
+    environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://github.com/dijarvrella/k8s-infra
+    targetRevision: dev
+    path: operators
+    directory:
+      include: |
+        ingress-nginx-app-dev.yml
+        cert-manager-app.yml
+        loki-app.yml
+        prometheus-operator-app.yml
+        promtail-app.yml
+        argocd-ingress-app-dev.yml
+      exclude: |
+        ingress-nginx-app-staging.yml
+        ingress-nginx-app-prod.yml
+        ingress-nginx-app.yml.legacy
+        argocd-ingress-app-staging.yml
+        argocd-ingress-app-prod.yml
+        *.legacy
+        README.md
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

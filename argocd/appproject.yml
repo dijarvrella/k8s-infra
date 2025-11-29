@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: k8s-infra
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: k8s-infra
+  annotations:
+    description: "AppProject for k8s-infra applications"
+spec:
+  sourceRepos:
+    - '*'
+  sourceNamespaces:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: 'ResourceQuota'
+    - group: ''
+      kind: 'LimitRange'
+    - group: 'policy'
+      kind: 'PodDisruptionBudget'
+  roles:
+    - name: developers
+      description: Read-only access for developers group
+      policies:
+        - p, proj:k8s-infra:developers, applications, get, k8s-infra/*, allow
+        - p, proj:k8s-infra:developers, logs, get, k8s-infra/*, allow
+        - p, proj:k8s-infra:developers, appprojects, get, k8s-infra, allow
+      groups:
+        - developers
+    - name: admins
+      description: Full access for admins group
+      policies:
+        - p, proj:k8s-infra:admins, applications, *, k8s-infra/*, allow
+        - p, proj:k8s-infra:admins, logs, *, k8s-infra/*, allow
+        - p, proj:k8s-infra:admins, exec, *, k8s-infra/*, allow
+        - p, proj:k8s-infra:admins, appprojects, *, k8s-infra, allow
+      groups:
+        - admins
+  syncWindows: []

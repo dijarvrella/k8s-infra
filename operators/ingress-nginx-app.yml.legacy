@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    targetRevision: 4.14.0
+    chart: ingress-nginx
+    helm:
+      releaseName: ingress-nginx
+      values: |
+        controller:
+          service:
+            type: LoadBalancer
+            annotations:
+              service.beta.kubernetes.io/do-loadbalancer-id: "61ccfc98-13fb-48ca-8600-b2c83e765477"
+          ingressClassResource:
+            name: nginx
+            enabled: true
+            default: true
+          admissionWebhooks:
+            enabled: true
+            failurePolicy: Fail
+            patch:
+              enabled: true
+              image:
+                registry: registry.k8s.io
+                image: ingress-nginx/kube-webhook-certgen
+                tag: v20221220-controller-v1.5.1-58-g787ea74b6
+            cert:
+              enabled: true
+              image:
+                registry: registry.k8s.io
+                image: ingress-nginx/kube-webhook-certgen
+                tag: v20221220-controller-v1.5.1-58-g787ea74b6
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ingress-nginx
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: ingress-nginx-admission
+      jsonPointers:
+        - /metadata/resourceVersion
+

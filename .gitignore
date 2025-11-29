@@ -1,0 +1,15 @@
+# Temporary/exported files
+*.sh
+resources.yaml
+secrets.yaml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor rules (project-specific, should not be committed)
+.cursorrules
+

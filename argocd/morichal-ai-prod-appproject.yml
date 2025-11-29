@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: morichal-ai-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: morichal-ai-prod
+  annotations:
+    description: "AppProject for morichal-ai-prod applications"
+spec:
+  sourceRepos:
+    - '*'
+  sourceNamespaces:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: 'ResourceQuota'
+    - group: ''
+      kind: 'LimitRange'
+    - group: 'policy'
+      kind: 'PodDisruptionBudget'
+  roles:
+    - name: developers
+      description: Read-only access for developers group
+      policies:
+        - p, proj:morichal-ai-prod:developers, applications, get, morichal-ai-prod/*, allow
+        - p, proj:morichal-ai-prod:developers, logs, get, morichal-ai-prod/*, allow
+        - p, proj:morichal-ai-prod:developers, appprojects, get, morichal-ai-prod, allow
+      groups:
+        - developers
+    - name: admins
+      description: Full access for admins group
+      policies:
+        - p, proj:morichal-ai-prod:admins, applications, *, morichal-ai-prod/*, allow
+        - p, proj:morichal-ai-prod:admins, logs, *, morichal-ai-prod/*, allow
+        - p, proj:morichal-ai-prod:admins, exec, *, morichal-ai-prod/*, allow
+        - p, proj:morichal-ai-prod:admins, appprojects, *, morichal-ai-prod, allow
+      groups:
+        - admins
+  syncWindows: []
+

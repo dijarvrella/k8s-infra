@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-ingress
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://github.com/dijarvrella/k8s-infra
+    targetRevision: main
+    path: operators/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

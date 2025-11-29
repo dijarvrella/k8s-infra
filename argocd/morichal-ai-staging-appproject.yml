@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: morichal-ai-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: morichal-ai-staging
+  annotations:
+    description: "AppProject for morichal-ai-staging applications"
+spec:
+  sourceRepos:
+    - '*'
+  sourceNamespaces:
+    - '*'
+  destinations:
+    - namespace: '*'
+      server: '*'
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: 'ResourceQuota'
+    - group: ''
+      kind: 'LimitRange'
+    - group: 'policy'
+      kind: 'PodDisruptionBudget'
+  roles:
+    - name: developers
+      description: Read-only access for developers group
+      policies:
+        - p, proj:morichal-ai-staging:developers, applications, get, morichal-ai-staging/*, allow
+        - p, proj:morichal-ai-staging:developers, logs, get, morichal-ai-staging/*, allow
+        - p, proj:morichal-ai-staging:developers, appprojects, get, morichal-ai-staging, allow
+      groups:
+        - developers
+    - name: admins
+      description: Full access for admins group
+      policies:
+        - p, proj:morichal-ai-staging:admins, applications, *, morichal-ai-staging/*, allow
+        - p, proj:morichal-ai-staging:admins, logs, *, morichal-ai-staging/*, allow
+        - p, proj:morichal-ai-staging:admins, exec, *, morichal-ai-staging/*, allow
+        - p, proj:morichal-ai-staging:admins, appprojects, *, morichal-ai-staging, allow
+      groups:
+        - admins
+  syncWindows: []
+

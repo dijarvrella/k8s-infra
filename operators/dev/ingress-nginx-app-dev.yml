@@ -20,9 +20,13 @@ spec:
         controller:
           service:
             type: LoadBalancer
+            externalTrafficPolicy: Local
             annotations:
               service.beta.kubernetes.io/do-loadbalancer-name: "lb-morichal-dev"
               service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
+              service.beta.kubernetes.io/do-loadbalancer-protocol: "tcp"
+              service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "tcp"
+              service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "32472"
           publishService:
             enabled: true
           ingressClassResource:

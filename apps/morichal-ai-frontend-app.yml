@@ -11,7 +11,7 @@ spec:
   project: morichal-ai-dev
   source:
     repoURL: https://github.com/Deploy-Staff/morichal-ai-frontend
-    targetRevision: dev
+    targetRevision: main
     path: k8s
   destination:
     server: https://kubernetes.default.svc

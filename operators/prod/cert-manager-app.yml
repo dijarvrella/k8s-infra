@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: cert-manager
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  sources:
+  - repoURL: https://charts.jetstack.io
+    targetRevision: v1.19.1
+    chart: cert-manager
+    helm:
+      releaseName: cert-manager
+      values: |
+        installCRDs: true
+        global:
+          leaderElection:
+            namespace: cert-manager
+  - repoURL: https://github.com/dijarvrella/k8s-infra
+    targetRevision: main
+    path: operators/cert-manager/clusterissuers
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

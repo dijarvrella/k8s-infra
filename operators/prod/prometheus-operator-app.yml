@@ -1,0 +1,137 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-operator
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: prometheus-operator
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 61.7.0
+    chart: kube-prometheus-stack
+    helm:
+      releaseName: prometheus-operator
+      values: |
+        # Prometheus configuration
+        prometheus:
+          prometheusSpec:
+            retention: 30d
+            enableOTLPReceiver: false
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 50Gi
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+        
+        # Grafana configuration
+        grafana:
+          enabled: true
+          adminPassword: admin
+          persistence:
+            enabled: true
+            size: 10Gi
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+              cert-manager.io/issue-temporary-certificate: "true"
+            hosts:
+              - grafana.dev.morichalcorp.com
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.dev.morichalcorp.com
+          # Datasource provisioning
+          # Additional datasources will be merged with default Prometheus and Alertmanager
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://loki.monitoring.svc.cluster.local:3100
+              isDefault: false
+              jsonData:
+                maxLines: 1000
+                derivedFields:
+                  - datasourceUid: prometheus
+                    matcherRegex: "traceID=(\\w+)"
+                    name: TraceID
+                    url: '$${__value.raw}'
+        
+        # Alertmanager configuration
+        alertmanager:
+          enabled: true
+          alertmanagerSpec:
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
+        
+        # Disable components we don't need
+        kubeStateMetrics:
+          enabled: true
+        nodeExporter:
+          enabled: true
+        prometheusOperator:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+  ignoreDifferences:
+        - group: networking.k8s.io
+          kind: Ingress
+          name: prometheus-operator-grafana
+          jsonPointers:
+            - /metadata/annotations
+            - /metadata/resourceVersion
+            - /metadata/generation
+            - /metadata/uid
+            - /metadata/creationTimestamp
+            - /metadata/labels/app.kubernetes.io~1version
+            - /metadata/labels/helm.sh~1chart
+          jqPathExpressions:
+            - .metadata.annotations
+            - .metadata.labels."app.kubernetes.io/version"
+            - .metadata.labels."helm.sh/chart"
+        - group: apiextensions.k8s.io
+          kind: CustomResourceDefinition
+          jsonPointers:
+            - /metadata/resourceVersion
+            - /metadata/generation
+            - /metadata/uid
+            - /metadata/creationTimestamp
+        - group: cert-manager.io
+          kind: Certificate
+          name: grafana-tls
+          jsonPointers:
+            - /status
+            - /status/conditions
+            - /metadata/resourceVersion
+            - /metadata/generation
+            - /metadata/uid
+            - /metadata/creationTimestamp
+

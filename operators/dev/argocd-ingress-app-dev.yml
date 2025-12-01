@@ -12,7 +12,7 @@ spec:
   project: k8s-infra
   source:
     repoURL: https://github.com/dijarvrella/k8s-infra
-    targetRevision: dev
+    targetRevision: main
     path: operators/argocd
     directory:
       include: argocd-ingress-dev.yaml

@@ -12,24 +12,9 @@ spec:
   project: k8s-infra
   source:
     repoURL: https://github.com/dijarvrella/k8s-infra
-    targetRevision: dev
-    path: operators
-    directory:
-      include: |
-        ingress-nginx-app-dev.yml
-        cert-manager-app.yml
-        loki-app.yml
-        prometheus-operator-app.yml
-        promtail-app.yml
-        argocd-ingress-app-dev.yml
-      exclude: |
-        ingress-nginx-app-staging.yml
-        ingress-nginx-app-prod.yml
-        ingress-nginx-app.yml.legacy
-        argocd-ingress-app-staging.yml
-        argocd-ingress-app-prod.yml
-        *.legacy
-        README.md
+    targetRevision: main
+    path: operators/dev
+    directory: {}
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

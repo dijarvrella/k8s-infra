@@ -1,0 +1,85 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: loki
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 6.16.0
+    chart: loki
+    helm:
+      releaseName: loki
+      values: |
+        deploymentMode: SingleBinary
+        singleBinary:
+          replicas: 1
+          persistence:
+            enabled: true
+            size: 50Gi
+        # Disable MinIO
+        minio:
+          enabled: false
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        # Explicitly set write replicas to 0 to avoid conflict with SingleBinary mode
+        write:
+          replicas: 0
+        read:
+          replicas: 0
+        backend:
+          replicas: 0
+        loki:
+          auth_enabled: false
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: filesystem
+          schemaConfig:
+            configs:
+              - from: "2020-10-24"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: index_
+                  period: 24h
+          storageConfig:
+            tsdb_shipper:
+              active_index_directory: /var/loki/tsdb-index
+              cache_location: /var/loki/tsdb-cache
+              cache_ttl: 24h
+            filesystem:
+              directory: /var/loki/chunks
+          limitsConfig:
+            enforce_metric_name: false
+            reject_old_samples: true
+            reject_old_samples_max_age: 168h
+          compactor:
+            working_directory: /var/loki/chunks/compactor
+          memberlist:
+            join_members: []  # Disable memberlist for SingleBinary
+        tableManager:
+          retention_deletes_enabled: true
+          retention_period: 720h
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+

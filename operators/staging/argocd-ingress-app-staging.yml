@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-ingress-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-ingress
+    environment: staging
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://github.com/dijarvrella/k8s-infra
+    targetRevision: main
+    path: operators/argocd
+    directory:
+      include: argocd-ingress-staging.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

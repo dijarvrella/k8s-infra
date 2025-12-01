@@ -26,6 +26,7 @@ spec:
               http: 30080
               https: 30443
             annotations:
+              # kubernetes.digitalocean.com/load-balancer-id: "REPLACE_WITH_LB_ID_AFTER_CREATION"
               service.beta.kubernetes.io/do-loadbalancer-name: "lb-morichal-production"
               service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
           publishService:

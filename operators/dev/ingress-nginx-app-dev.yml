@@ -18,8 +18,13 @@ spec:
       releaseName: ingress-nginx
       values: |
         controller:
+          kind: DaemonSet
           service:
             type: LoadBalancer
+            externalTrafficPolicy: Local
+            nodePorts:
+              http: 30080
+              https: 30443
             annotations:
               service.beta.kubernetes.io/do-loadbalancer-name: "lb-morichal-dev"
               service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"

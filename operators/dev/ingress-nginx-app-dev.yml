@@ -22,6 +22,11 @@ spec:
             type: LoadBalancer
             annotations:
               service.beta.kubernetes.io/do-loadbalancer-name: "lb-morichal-dev"
+              service.beta.kubernetes.io/do-loadbalancer-protocol: "http"
+              service.beta.kubernetes.io/do-loadbalancer-algorithm: "round_robin"
+              service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+              service.beta.kubernetes.io/do-loadbalancer-healthcheck-path: "/healthz"
+              service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "10256"
           publishService:
             enabled: true
           ingressClassResource:

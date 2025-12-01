@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/dijarvrella/k8s-infra
     targetRevision: main
-    path: apps
+    path: apps-staging
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

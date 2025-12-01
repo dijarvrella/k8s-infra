@@ -1,20 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: k8s-infra-apps
+  name: morichal-ai-backend
   namespace: argocd
   labels:
-    app.kubernetes.io/name: k8s-infra-apps
-    environment: prod
+    app.kubernetes.io/name: morichal-ai-backend
 spec:
   project: morichal-ai-prod
   source:
-    repoURL: https://github.com/dijarvrella/k8s-infra
+    repoURL: https://github.com/Deploy-Staff/morichal-ai-backend
     targetRevision: main
-    path: apps-prod
+    path: k8s
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: morichal-ai-backend
   syncPolicy:
     automated:
       prune: true

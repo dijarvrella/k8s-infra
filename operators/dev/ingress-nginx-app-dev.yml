@@ -6,8 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: ingress-nginx
     environment: dev
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: k8s-infra
   source:

@@ -6,8 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: k8s-infra-operators
     environment: prod
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: k8s-infra
   source:

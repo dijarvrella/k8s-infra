@@ -6,8 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: k8s-infra-apps
     environment: dev
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: morichal-ai-dev
   source:

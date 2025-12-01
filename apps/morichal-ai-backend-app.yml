@@ -5,8 +5,6 @@ metadata:
   namespace: argocd
   labels:
     app.kubernetes.io/name: morichal-ai-backend
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: morichal-ai-dev
   source:

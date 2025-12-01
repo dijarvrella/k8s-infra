@@ -25,7 +25,7 @@ spec:
               https: 30443
             annotations:
               kubernetes.digitalocean.com/load-balancer-id: "72f5b794-c496-47d1-bf0e-adf7360a749a"
-              service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
+              service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL"
           publishService:
             enabled: true
           ingressClassResource:

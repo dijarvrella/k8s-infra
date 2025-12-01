@@ -31,7 +31,7 @@ controller:
       https: 30443                   # Fixed HTTPS NodePort
     annotations:
       service.beta.kubernetes.io/do-loadbalancer-name: "lb-morichal-{env}"
-      service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL_NETWORK"
+      service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL"
 ```
 
 ## Setup Instructions

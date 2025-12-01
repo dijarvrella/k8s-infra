@@ -12,7 +12,44 @@ echo "🚀 Bootstrapping Production Environment..."
 # Step 1: Install ArgoCD
 echo "📦 Installing ArgoCD..."
 kubectl create namespace argocd || true
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Download manifest to avoid connection issues with large files
+echo "📥 Downloading ArgoCD manifest..."
+TEMP_MANIFEST=$(mktemp)
+trap "rm -f $TEMP_MANIFEST" EXIT
+
+# Retry download up to 3 times
+for i in {1..3}; do
+  if curl -fsSL https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml -o "$TEMP_MANIFEST"; then
+    break
+  fi
+  if [ $i -eq 3 ]; then
+    echo "❌ Failed to download ArgoCD manifest after 3 attempts"
+    exit 1
+  fi
+  echo "⚠️  Download attempt $i failed, retrying..."
+  sleep 2
+done
+
+# Apply with retry logic
+echo "🔄 Applying ArgoCD manifest..."
+MAX_RETRIES=3
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if kubectl apply -n argocd -f "$TEMP_MANIFEST"; then
+    echo "✅ ArgoCD manifest applied successfully"
+    break
+  fi
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+    echo "⚠️  Apply attempt $RETRY_COUNT failed, retrying in 5 seconds..."
+    sleep 5
+  else
+    echo "❌ Failed to apply ArgoCD manifest after $MAX_RETRIES attempts"
+    echo "💡 Tip: Check if ArgoCD is partially installed: kubectl get all -n argocd"
+    exit 1
+  fi
+done
 
 # Step 2: Wait for readiness
 echo "⏳ Waiting for ArgoCD to be ready..."

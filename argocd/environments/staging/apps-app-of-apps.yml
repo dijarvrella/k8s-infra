@@ -9,9 +9,9 @@ metadata:
 spec:
   project: morichal-ai-staging
   source:
-    repoURL: https://github.com/dijarvrella/k8s-infra
+    repoURL: https://github.com/Deploy-Staff/morichal-k8s-infra
     targetRevision: main
-    path: apps-staging
+    path: apps/staging
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

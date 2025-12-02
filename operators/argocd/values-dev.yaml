@@ -1,0 +1,66 @@
+# ArgoCD Helm values for Dev environment
+# This file configures ArgoCD with GitHub OAuth
+
+global:
+  image:
+    tag: "latest"
+
+# Server configuration
+server:
+  # Ingress configuration
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - argocd.dev.morichalcorp.com
+    tls:
+      - secretName: argocd-server-tls
+        hosts:
+          - argocd.dev.morichalcorp.com
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+  # OAuth configuration
+  config:
+    # GitHub OAuth configuration
+    url: https://argocd.dev.morichalcorp.com
+    # OIDC configuration for GitHub OAuth
+    # IMPORTANT: Replace <YOUR_CLIENT_ID> and <YOUR_CLIENT_SECRET> with actual values from GitHub
+    # For production, consider using a secret management solution (Sealed Secrets, External Secrets Operator, etc.)
+    # or use a separate values file that's gitignored
+    oidc.config: |
+      name: GitHub
+      issuer: https://github.com
+      clientID: <YOUR_CLIENT_ID>
+      clientSecret: <YOUR_CLIENT_SECRET>
+      requestedScopes: ["openid", "profile", "email", "read:org"]
+      # Optional: Map GitHub teams to ArgoCD roles via RBAC
+      # Configure in argocd-rbac-cm ConfigMap separately
+
+# Controller configuration
+controller:
+  replicas: 1
+
+# Repo server configuration
+repoServer:
+  replicas: 1
+
+# ApplicationSet controller
+applicationSet:
+  enabled: true
+
+# Redis configuration
+redis:
+  enabled: true
+
+# Dex configuration (for OAuth)
+dex:
+  enabled: false  # Disable Dex when using OIDC directly
+
+# Note: For better secret management, consider:
+# 1. Using a separate values file (values-dev-secrets.yaml) that's gitignored
+# 2. Using Sealed Secrets or External Secrets Operator
+# 3. Using Helm secrets plugin with encrypted values files
+

@@ -1,37 +1,51 @@
-# ArgoCD Self-Management
+# ArgoCD Configuration
 
-This directory contains ArgoCD configurations for managing ArgoCD itself and its ingress.
+This directory contains ArgoCD configurations for managing ArgoCD installation, ingress, and OAuth setup.
+
+## Installation
+
+ArgoCD is installed using Helm via the bootstrap scripts. See the main repository README for bootstrap instructions.
+
+### Helm Values Files
+
+- `values-dev.yaml` - ArgoCD configuration for Dev environment
+- `values-staging.yaml` - ArgoCD configuration for Staging environment  
+- `values-prod.yaml` - ArgoCD configuration for Production environment
+
+Each values file includes:
+- Ingress configuration
+- GitHub OAuth configuration (requires setup - see GITHUB_OAUTH_SETUP.md)
+- Resource sizing (replicas, etc.)
+
+## GitHub OAuth Setup
+
+ArgoCD is configured with GitHub OAuth for authentication. **You must configure OAuth before deploying.**
+
+See [GITHUB_OAUTH_SETUP.md](./GITHUB_OAUTH_SETUP.md) for detailed instructions on:
+- Creating a GitHub OAuth App
+- Configuring the values files
+- Setting up RBAC policies
+- Troubleshooting
+
+**Quick Start:**
+1. Create a GitHub OAuth App (see GITHUB_OAUTH_SETUP.md)
+2. Update the appropriate values file (`values-<env>.yaml`) with your Client ID and Secret
+3. Run the bootstrap script for your environment
 
 ## Applications
 
-### argocd-self-managed-app.yml
+### ArgoCD Application (Optional)
 
-Manages ArgoCD itself using the official ArgoCD manifests from the stable branch.
+The `argocd-app-<env>.yml` files can be used to manage ArgoCD via GitOps after initial bootstrap.
+These are optional and primarily useful for ongoing configuration management.
 
-**Important Notes:**
-- This Application uses `ignoreDifferences` to prevent ArgoCD from managing certain secrets that contain runtime-generated data
-- The `ServerSideApply=true` option helps with managing existing resources
-- This should be applied **after** ArgoCD is initially installed
+**Note**: The bootstrap scripts handle the initial installation. The Application files are for future GitOps management.
 
-**Bootstrap Process:**
-1. Install ArgoCD manually first:
-   ```bash
-   kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   ```
+### Ingress Applications
 
-2. Once ArgoCD is running, apply this Application:
-   ```bash
-   kubectl apply -f operators/argocd/argocd-self-managed-app.yml
-   ```
+- `argocd-ingress-dev.yaml` - Ingress for Dev environment
+- `argocd-ingress-staging.yaml` - Ingress for Staging environment
+- `argocd-ingress-prod.yaml` - Ingress for Production environment
 
-3. ArgoCD will then manage itself going forward.
-
-### argocd-ingress-app.yml
-
-Manages the ArgoCD server ingress resource.
-
-- **Manifest**: `argocd-ingress.yaml`
-- **Namespace**: `argocd`
-- Provides external access to ArgoCD server with TLS
+These are managed via the operators directory structure and provide external access to ArgoCD with TLS.
 

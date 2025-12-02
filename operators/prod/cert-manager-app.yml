@@ -18,7 +18,7 @@ spec:
         global:
           leaderElection:
             namespace: cert-manager
-  - repoURL: https://github.com/dijarvrella/k8s-infra
+  - repoURL: https://github.com/Deploy-Staff/morichal-k8s-infra
     targetRevision: main
     path: operators/cert-manager/clusterissuers
   destination:

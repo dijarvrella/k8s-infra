@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: k8s-infra
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 7.0.0  # Use a stable version, update as needed
+    helm:
+      # Note: Values are managed via bootstrap script (scripts/bootstrap-prod.sh)
+      # This Application is optional and can be used for GitOps management after initial bootstrap
+      # To use this Application, you would need to either:
+      # 1. Add inline values here
+      # 2. Use a separate values management solution (Sealed Secrets, External Secrets, etc.)
+      # 3. Reference values from a ConfigMap
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    # Ignore differences in secrets that contain runtime-generated data
+    ignoreDifferences:
+      - group: ""
+        kind: Secret
+        jsonPointers:
+          - /data
+        jqPathExpressions:
+          - '.data | keys[] | select(. == "*secret*" or . == "*token*" or . == "*password*")'
+

@@ -6,34 +6,49 @@ This repository contains Kubernetes infrastructure configurations managed by Arg
 
 ```
 k8s-infra/
-├── operators/                          # Shared infrastructure operators (no env-specific naming)
-│   ├── ingress-nginx-app.yml
-│   ├── cert-manager-app.yml
-│   ├── loki-app.yml
-│   ├── prometheus-operator-app.yml
-│   └── ...
-├── apps/                               # Shared application deployments (no env-specific naming)
-│   ├── morichal-ai-frontend-app.yml
-│   └── morichal-ai-backend-app.yml
-├── argocd/                                     # ArgoCD bootstrap configuration
-│   ├── appproject.yml                         # AppProject definition (shared)
-│   ├── environments/
-│   │   ├── dev/
-│   │   │   ├── operators-app-of-apps.yml      # Dev cluster operators bootstrap
-│   │   │   └── apps-app-of-apps.yml           # Dev cluster apps bootstrap
-│   │   ├── staging/
-│   │   │   ├── operators-app-of-apps.yml      # Staging cluster operators bootstrap
-│   │   │   └── apps-app-of-apps.yml           # Staging cluster apps bootstrap
-│   │   └── prod/
-│   │       ├── operators-app-of-apps.yml      # Prod cluster operators bootstrap
-│   │       └── apps-app-of-apps.yml           # Prod cluster apps bootstrap
-│   └── legacy/                                 # Legacy single-cluster files (reference only)
-│       ├── k8s-infra-operators-app-of-apps.yml
-│       └── k8s-infra-apps-app-of-apps.yml
+├── operators/                          # Infrastructure operators organized by environment
+│   ├── argocd/                         # ArgoCD configuration (values, ingress)
+│   ├── cert-manager/                   # cert-manager cluster issuers
+│   ├── dev/                            # Dev environment operators
+│   │   ├── argocd-ingress-app-dev.yml
+│   │   ├── cert-manager-app.yml
+│   │   ├── ingress-nginx-app-dev.yml
+│   │   ├── loki-app.yml
+│   │   ├── prometheus-operator-app.yml
+│   │   └── promtail-app.yml
+│   ├── staging/                        # Staging environment operators
+│   │   └── ...
+│   └── prod/                           # Production environment operators
+│       └── ...
+├── apps/                               # Application deployments organized by environment
+│   ├── dev/                            # Dev environment applications
+│   │   ├── morichal-ai-frontend-app.yml
+│   │   └── morichal-ai-backend-app.yml
+│   ├── staging/                        # Staging environment applications
+│   │   └── ...
+│   └── prod/                           # Production environment applications
+│       └── ...
+├── argocd/                             # ArgoCD bootstrap configuration
+│   ├── appproject.yml                  # Shared AppProject definition
+│   └── environments/
+│       ├── dev/
+│       │   ├── morichal-ai-dev-appproject.yml
+│       │   ├── operators-app-of-apps.yml
+│       │   └── apps-app-of-apps.yml
+│       ├── staging/
+│       │   ├── morichal-ai-staging-appproject.yml
+│       │   ├── operators-app-of-apps.yml
+│       │   └── apps-app-of-apps.yml
+│       └── prod/
+│           ├── morichal-ai-prod-appproject.yml
+│           ├── operators-app-of-apps.yml
+│           └── apps-app-of-apps.yml
 ├── scripts/
-│   └── register-cluster.sh                    # Helper script for cluster registration
+│   ├── bootstrap-dev.sh
+│   ├── bootstrap-staging.sh
+│   └── bootstrap-prod.sh
 └── docs/
-    └── MULTI_CLUSTER_SETUP.md                  # Multi-cluster setup guide
+    └── MULTI_CLUSTER_SETUP.md
 ```
 
 ## Bootstrap Process
@@ -50,20 +65,33 @@ k8s-infra/
 ./scripts/bootstrap-prod.sh
 ```
 
-**Manual Bootstrap:** See [argocd/BOOTSTRAP.md](argocd/BOOTSTRAP.md) for detailed step-by-step instructions.
-
 ### Quick Reference:
 
-1. **Install ArgoCD**:
+1. **Install ArgoCD** (handled by bootstrap scripts):
    ```bash
    kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+   helm repo add argo https://argoproj.github.io/argo-helm
+   helm repo update
+   helm upgrade --install argocd argo/argo-cd \
+     --namespace argocd \
+     --values operators/argocd/values-<env>.yaml \
+     --wait
    ```
 
-2. **Apply AppProject**:
+2. **Apply AppProjects**:
    ```bash
+   # Shared AppProject
    kubectl apply -f argocd/appproject.yml
+   
+   # Environment-specific AppProject
+   # Dev
+   kubectl apply -f argocd/environments/dev/morichal-ai-dev-appproject.yml
+   
+   # Staging
+   kubectl apply -f argocd/environments/staging/morichal-ai-staging-appproject.yml
+   
+   # Prod
+   kubectl apply -f argocd/environments/prod/morichal-ai-prod-appproject.yml
    ```
 
 3. **Apply App-of-Apps** (choose environment):
@@ -83,12 +111,14 @@ k8s-infra/
 
 ## App of Apps Pattern
 
-This repository uses the App of Apps pattern with two separate entry points:
+This repository uses the App of Apps pattern with environment-specific entry points:
 
-1. **`k8s-infra-operators-app-of-apps.yml`** - Manages infrastructure operators
-2. **`k8s-infra-apps-app-of-apps.yml`** - Manages application deployments
+1. **`operators-app-of-apps.yml`** - Manages infrastructure operators for each environment
+2. **`apps-app-of-apps.yml`** - Manages application deployments for each environment
 
-ArgoCD will automatically discover and sync all Application manifests in the respective directories.
+ArgoCD will automatically discover and sync all Application manifests in the respective directories:
+- Operators: `operators/<env>/`
+- Applications: `apps/<env>/`
 
 ## Operators
 
@@ -167,7 +197,7 @@ See [docs/MULTI_CLUSTER_SETUP.md](docs/MULTI_CLUSTER_SETUP.md) for detailed setu
 
 ## Git Repository
 
-- **Repository**: `git@github.com:dijarvrella/k8s-infra.git`
+- **Repository**: `git@github.com:Deploy-Staff/morichal-k8s-infra.git`
 - **Branches**:
   - `main` - Production environment
   - `staging` - Staging environment
@@ -185,7 +215,7 @@ See [docs/MULTI_CLUSTER_SETUP.md](docs/MULTI_CLUSTER_SETUP.md) for detailed setu
 
 ### Adding a new application:
 
-1. Create the Application manifest in `apps/your-app-app.yml`
+1. Create the Application manifest in `apps/<env>/your-app-app.yml` (where `<env>` is `dev`, `staging`, or `prod`)
 2. Commit and push to the repository
 3. ArgoCD will automatically discover and sync it
 

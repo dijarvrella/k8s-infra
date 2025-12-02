@@ -9,7 +9,7 @@ metadata:
 spec:
   project: k8s-infra
   source:
-    repoURL: https://github.com/dijarvrella/k8s-infra
+    repoURL: https://github.com/Deploy-Staff/morichal-k8s-infra
     targetRevision: main
     path: operators/argocd
     directory:
